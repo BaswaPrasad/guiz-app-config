@@ -1,9 +1,12 @@
 spring:
   application:
     name: quiz-service
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/quizdb
+  datasource:
+      url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/quizdb}
+      username: ${SPRING_DATASOURCE_USERNAME:postgres}
+      password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+      driver-class-name: org.postgresql.Driver
+      
 server:
   port: 8082
 
@@ -13,4 +16,4 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}

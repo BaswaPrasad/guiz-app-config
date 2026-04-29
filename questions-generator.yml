@@ -1,16 +1,64 @@
-spring:
-  application:
-    name: quiz-service
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/quizdb
 server:
-  port: 9092
+   port: 8083
 
+management:
+   endpoints:
+      web:
+         exposure:
+            include: '*'
+
+spring:
+   application:
+      name: question-generator
+   ai:
+      openai:
+         api-key: ${OPEN_API_KEY}
+   cloud:
+      function:
+         definition: getQuizBinding
+         web:
+            path: /functions
+      stream:
+         defaultBinder: KafkaBinder
+         binders:
+            KafkaBinder:
+               type: kafka
+         kafka:
+            binder:
+               brokers:
+               - localhost:9092
+         bindings:
+            getQuizBinding-in-0:
+               destination: quiz-created
+               group: ${spring.application.name}
+            getQuizBinding-out-0:
+               destination: acknowledge-quiz
+               group: ${spring.application.name}
+   datasource:
+      url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/questionsdb}
+      username: ${SPRING_DATASOURCE_USERNAME:postgres}
+      password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+      driver-class-name: org.postgresql.Driver
+
+   jpa:
+      hibernate:
+         ddl-auto: update
+      show-sql: true
 
 eureka:
-  client:
-    register-with-eureka: true
-    fetch-registry: true
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
+   client:
+      register-with-eureka: true
+      fetch-registry: true
+      service-url:
+         defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}
+
+resilience4j.circuitbreaker:
+   instances:
+      quizCB:
+         registerHealthIndicator: true
+         slidingWindowType: COUNT_BASED
+         slidingWindowSize: 10
+         permittedNumberOfCallsInHalfOpenState: 2
+         failureRateThreshold: 50
+         minimum-number-of-calls: 10
+         maxWaitDurationInHalfOpenState: 5000

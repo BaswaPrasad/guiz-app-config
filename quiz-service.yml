@@ -2,11 +2,32 @@ spring:
   application:
     name: quiz-service
   datasource:
-      url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/quizdb}
-      username: ${SPRING_DATASOURCE_USERNAME:postgres}
-      password: ${SPRING_DATASOURCE_PASSWORD:postgres}
-      driver-class-name: org.postgresql.Driver
-      
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/quizdb}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  cloud:
+    function:
+      web:
+        path: "/functions"
+      definition: acknowledgeInformation
+    stream:
+      defaultBinder: KafkaBinder
+      binders:
+        KafkaBinder:
+          type: kafka
+      kafka:
+        binder:
+          brokers:
+            - localhost:9092   
+      bindings:
+        quizCreatedBinding-out-0:
+          destination: quiz-created
+          group: ${spring.application.name}
+        acknowledgeInformation-in-0:
+          destination: acknowledge-quiz
+          group: ${spring.application.name}
+          
 server:
   port: 8082
 

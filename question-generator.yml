@@ -1,64 +1,77 @@
 server:
-   port: 8083
+  port: 8083
 
 management:
-   endpoints:
-      web:
-         exposure:
-            include: '*'
+  endpoints:
+    web:
+      exposure:
+        include: "*"
 
 spring:
-   application:
-      name: question-generator
-   datasource:
-      url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/questionsdb}
-      username: ${SPRING_DATASOURCE_USERNAME:postgres}
-      password: ${SPRING_DATASOURCE_PASSWORD:postgres}
-      driver-class-name: org.postgresql.Driver
-   ai:
-      openai:
-         api-key: ${OPEN_API_KEY}
-   cloud:
-      function:
-         definition: getQuizBinding
-         web:
-            path: /functions
-      stream:
-         defaultBinder: KafkaBinder
-         binders:
-            KafkaBinder:
-               type: kafka
-         kafka:
-            binder:
-               brokers:
-               - localhost:9092
-         bindings:
-            getQuizBinding-in-0:
-               destination: quiz-created
-               group: ${spring.application.name}
-            getQuizBinding-out-0:
-               destination: acknowledge-quiz
-               group: ${spring.application.name}
+  application:
+    name: question-generator
 
-   jpa:
-      hibernate:
-         ddl-auto: update
-      show-sql: true
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/questionsdb}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  ai:
+    openai:
+      api-key: ${OPEN_API_KEY}
+
+  cloud:
+    function:
+      definition: getQuizBinding
+
+    stream:
+      defaultBinder: kafka
+
+      binders:
+        kafka:
+          type: kafka
+          environment:
+            spring:
+              kafka:
+                bootstrap-servers: localhost:9092
+
+      bindings:
+        getQuizBinding-in-0:
+          destination: quiz-created
+          group: question-generator-v2
+          content-type: application/json
+
+        getQuizBinding-out-0:
+          destination: acknowledge-quiz
+          content-type: application/json
+
+      kafka:
+        bindings:
+          getQuizBinding-in-0:
+            consumer:
+              startOffset: earliest
 
 eureka:
-   client:
-      register-with-eureka: true
-      fetch-registry: true
-      service-url:
-         defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}
 
-resilience4j.circuitbreaker:
-   instances:
+resilience4j:
+  circuitbreaker:
+    instances:
       quizCB:
-         registerHealthIndicator: true
-         slidingWindowType: COUNT_BASED
-         slidingWindowSize: 10
-         permittedNumberOfCallsInHalfOpenState: 2
-         failureRateThreshold: 50
-         minimum-number-of-calls: 10
-         maxWaitDurationInHalfOpenState: 5000
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        permittedNumberOfCallsInHalfOpenState: 2
+        failureRateThreshold: 50
+        minimum-number-of-calls: 10
+        maxWaitDurationInHalfOpenState: 5000
